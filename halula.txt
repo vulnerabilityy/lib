@@ -20,7 +20,6 @@ local activespoofs = {};
 local registeredspoofs = {};
 local persistentloops = {};
 local currentactive;
-
 local DEFAULT_VELOCITY_CLAMP = 50;
 
 local function oncharacter(char)
@@ -97,14 +96,12 @@ local function refreshconnection()
         end;
         executing = true;
         clientcframe = primarypart.CFrame;
-
         local savedVel = Vector3.zero;
         local savedRotVel = Vector3.zero;
         pcall(function()
             savedVel = primarypart.AssemblyLinearVelocity or primarypart.Velocity or Vector3.zero;
             savedRotVel = primarypart.AssemblyAngularVelocity or primarypart.RotVelocity or Vector3.zero;
         end);
-
         local success, target = pcall(spoof.callback, clientcframe);
         if success and target and typeofcache(target) == "CFrame" then
             isspoofing = true;
@@ -112,22 +109,18 @@ local function refreshconnection()
             renderstepped:Wait();
             primarypart.CFrame = clientcframe;
             isspoofing = false;
-
             local mode = getgenv().serverposition_velocity_mode;
             local clamp = getgenv().serverposition_velocity_clamp;
-
             if clamp == false or clamp == 0 then
                 mode = "zero";
             end;
-
             if mode == nil then
                 if getgenv().serverposition_velocity_fix == false then
                     mode = "none";
                 else
-                    mode = "restore";
+                    mode = "zero";
                 end;
             end;
-
             if mode == "zero" then
                 pcall(function()
                     primarypart.AssemblyLinearVelocity = Vector3.zero;
@@ -155,7 +148,6 @@ local function refreshconnection()
                     primarypart.RotVelocity = savedRotVel;
                 end);
             end;
-
             if cframecallback then
                 cframecallback(target);
             end;
