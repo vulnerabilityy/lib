@@ -16,6 +16,8 @@ local isspoofing = false;
 local stopspoofing = false;
 local executing = false;
 local cframecallback;
+local savedVel = Vector3.zero;
+local savedRotVel = Vector3.zero;
 local activespoofs = {};
 local registeredspoofs = {};
 local persistentloops = {};
@@ -36,8 +38,16 @@ local hooked = false;
 if not hooked then
     setreadonly(mt, false);
     mt.__index = newcclosure(function(self, property)
-        if (not checkcaller() and self == primarypart and property == "CFrame" and isspoofing) then
-            return clientcframe;
+        if (not checkcaller() and self == primarypart and isspoofing) then
+            if property == "CFrame" then
+                return clientcframe;
+            elseif property == "Position" then
+                return clientcframe.Position;
+            elseif property == "AssemblyLinearVelocity" or property == "Velocity" then
+                return savedVel;
+            elseif property == "AssemblyAngularVelocity" or property == "RotVelocity" then
+                return savedRotVel;
+            end;
         end;
         return originalindex(self, property);
     end);
@@ -96,11 +106,12 @@ local function refreshconnection()
         end;
         executing = true;
         clientcframe = primarypart.CFrame;
-        local savedVel = Vector3.zero;
-        local savedRotVel = Vector3.zero;
+        local wasAnchored = false;
         pcall(function()
             savedVel = primarypart.AssemblyLinearVelocity or primarypart.Velocity or Vector3.zero;
             savedRotVel = primarypart.AssemblyAngularVelocity or primarypart.RotVelocity or Vector3.zero;
+            wasAnchored = primarypart.Anchored;
+            primarypart.Anchored = true;
         end);
         local success, target = pcall(spoof.callback, clientcframe);
         if success and target and typeofcache(target) == "CFrame" then
@@ -109,6 +120,9 @@ local function refreshconnection()
             renderstepped:Wait();
             primarypart.CFrame = clientcframe;
             isspoofing = false;
+            pcall(function()
+                primarypart.Anchored = wasAnchored;
+            end);
             local mode = getgenv().serverposition_velocity_mode;
             local clamp = getgenv().serverposition_velocity_clamp;
             if clamp == false or clamp == 0 then
@@ -151,8 +165,13 @@ local function refreshconnection()
             if cframecallback then
                 cframecallback(target);
             end;
-        elseif not success then
-            warn("callback error [" .. spoof.name .. "]: " .. tostring(target));
+        else
+            pcall(function()
+                primarypart.Anchored = wasAnchored;
+            end);
+            if not success then
+                warn("callback error [" .. spoof.name .. "]: " .. tostring(target));
+            end;
         end;
         executing = false;
     end);
