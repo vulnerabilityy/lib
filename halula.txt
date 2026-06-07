@@ -124,12 +124,23 @@ local function refreshconnection()
         end;
         executing = true;
         clientcframe = primarypart.CFrame;
-        local success, target = pcall(spoof.callback, clientcframe);
+        local success, target, restore = pcall(spoof.callback, clientcframe);
         if success and target and typeofcache(target) == "CFrame" then
             isspoofing = true;
             primarypart.CFrame = target;
             renderstepped:Wait();
-            primarypart.CFrame = clientcframe;
+            local restore_target = clientcframe
+            if restore then
+                if typeofcache(restore) == "function" then
+                    local ok, res = pcall(restore)
+                    if ok and typeofcache(res) == "CFrame" then
+                        restore_target = res
+                    end
+                elseif typeofcache(restore) == "CFrame" then
+                    restore_target = restore
+                end
+            end
+            primarypart.CFrame = restore_target;
             isspoofing = false;
             if cframecallback then
                 cframecallback(target);
