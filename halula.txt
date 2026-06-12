@@ -13,6 +13,7 @@ local clientcframe;
 local connection;
 local currentlooptype;
 local isspoofing = false;
+local writing_internal = false;
 local stopspoofing = false;
 local executing = false;
 local cframecallback;
@@ -55,14 +56,38 @@ end;
 localplayer.CharacterAdded:Connect(oncharacter);
 local mt = getrawmetatable(game);
 local originalindex = mt.__index;
+local originalnewindex = mt.__newindex;
 local hooked = false;
 if not hooked then
     setreadonly(mt, false);
     mt.__index = newcclosure(function(self, property)
-        if (not checkcaller() and self == primarypart and property == "CFrame" and isspoofing) then
-            return clientcframe;
+        if (not checkcaller() and self == primarypart and isspoofing) then
+            if property == "CFrame" then
+                return clientcframe;
+            elseif property == "Position" then
+                return clientcframe.Position;
+            elseif property == "Rotation" then
+                return clientcframe.Rotation;
+            elseif property == "Orientation" then
+                local rx, ry, rz = clientcframe:ToEulerAnglesXYZ()
+                return Vector3.new(math.deg(rx), math.deg(ry), math.deg(rz))
+            end;
         end;
         return originalindex(self, property);
+    end);
+    mt.__newindex = newcclosure(function(self, property, value)
+        if (self == primarypart and isspoofing and not writing_internal) then
+            if property == "CFrame" then
+                clientcframe = value;
+                return;
+            elseif property == "Position" then
+                clientcframe = CFrame.new(value) * clientcframe.Rotation;
+                return;
+            elseif property == "Velocity" or property == "AssemblyLinearVelocity" or property == "RotVelocity" or property == "AssemblyAngularVelocity" then
+                return;
+            end;
+        end;
+        return originalnewindex(self, property, value);
     end);
     setreadonly(mt, true);
     hooked = true;
@@ -127,7 +152,22 @@ local function refreshconnection()
         local success, target, restore = pcall(spoof.callback, clientcframe);
         if success and target and typeofcache(target) == "CFrame" then
             isspoofing = true;
+            writing_internal = true;
             primarypart.CFrame = target;
+            writing_internal = false;
+            pcall(function()
+                local char = localplayer.Character;
+                if char then
+                    local tool = char:FindFirstChildOfClass("Tool");
+                    if tool and tool.Name == "[Knife]" then
+                        local handle = tool:FindFirstChild("Handle");
+                        local hitbox = handle and handle:FindFirstChild("HITBOX_PART");
+                        if hitbox then
+                            hitbox.CFrame = target;
+                        end;
+                    end;
+                end;
+            end);
             renderstepped:Wait();
             local restore_target = clientcframe
             if restore then
@@ -140,7 +180,9 @@ local function refreshconnection()
                     restore_target = restore
                 end
             end
+            writing_internal = true;
             primarypart.CFrame = restore_target;
+            writing_internal = false;
             isspoofing = false;
             if cframecallback then
                 cframecallback(target);
@@ -204,6 +246,10 @@ getgenv().setrunning = function(logicname, booleanref, persistent)
             else
                 if spoofdata.priority > currentactive.priority or (spoofdata.priority == currentactive.priority and spoofdata.timestamp < currentactive.timestamp) then
                     currentactive = spoofdata;
+                end;
+                if connection then
+                    connection:Disconnect();
+                    connection = nil;
                 end;
             end;
             refreshconnection();
