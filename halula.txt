@@ -155,19 +155,6 @@ local function refreshconnection()
             writing_internal = true;
             primarypart.CFrame = target;
             writing_internal = false;
-            pcall(function()
-                local char = localplayer.Character;
-                if char then
-                    local tool = char:FindFirstChildOfClass("Tool");
-                    if tool and tool.Name == "[Knife]" then
-                        local handle = tool:FindFirstChild("Handle");
-                        local hitbox = handle and handle:FindFirstChild("HITBOX_PART");
-                        if hitbox then
-                            hitbox.CFrame = target;
-                        end;
-                    end;
-                end;
-            end);
             renderstepped:Wait();
             local restore_target = clientcframe
             if restore then
