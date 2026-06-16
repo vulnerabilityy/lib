@@ -151,6 +151,8 @@ local function refreshconnection()
         clientcframe = primarypart.CFrame;
         local success, target, restore = pcall(spoof.callback, clientcframe);
         if success and target and typeofcache(target) == "CFrame" then
+            local savedVel = primarypart.AssemblyLinearVelocity;
+            local savedRotVel = primarypart.AssemblyAngularVelocity;
             isspoofing = true;
             writing_internal = true;
             primarypart.CFrame = target;
@@ -169,6 +171,12 @@ local function refreshconnection()
             end
             writing_internal = true;
             primarypart.CFrame = restore_target;
+            if savedVel.Magnitude > 0.01 then
+                primarypart.AssemblyLinearVelocity = savedVel;
+            else
+                primarypart.AssemblyLinearVelocity = Vector3.new(0, 0.001, 0);
+            end;
+            primarypart.AssemblyAngularVelocity = savedRotVel;
             writing_internal = false;
             isspoofing = false;
             if cframecallback then
