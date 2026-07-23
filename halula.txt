@@ -23,32 +23,26 @@ local persistentloops = {};
 local currentactive;
 local equip_pause_ticks = 0;
 local function protect_equips(char)
-    local function trigger_pause()
-        equip_pause_ticks = 30;
-        if primarypart and clientcframe then
-            writing_internal = true;
-            primarypart.CFrame = clientcframe;
-            primarypart.AssemblyLinearVelocity = Vector3.new(0, 0, 0);
-            primarypart.AssemblyAngularVelocity = Vector3.new(0, 0, 0);
-            writing_internal = false;
-        end;
-    end;
-    local function onGripChange(desc)
+    local function onDescendantAdded(desc)
         if desc:IsA("Weld") and desc.Name == "RightGrip" then
-            trigger_pause();
+            equip_pause_ticks = 3;
+            if primarypart and clientcframe then
+                primarypart.CFrame = clientcframe;
+            end;
         end;
     end;
-    local function onToolChange(child)
+    local function onChildAdded(child)
         if child:IsA("Tool") then
-            trigger_pause();
+            equip_pause_ticks = 3;
+            if primarypart and clientcframe then
+                primarypart.CFrame = clientcframe;
+            end;
         end;
     end;
-    char.DescendantAdded:Connect(onGripChange);
-    char.DescendantRemoving:Connect(onGripChange);
-    char.ChildAdded:Connect(onToolChange);
-    char.ChildRemoved:Connect(onToolChange);
+    char.DescendantAdded:Connect(onDescendantAdded);
+    char.ChildAdded:Connect(onChildAdded);
     for _, desc in ipairs(char:GetDescendants()) do
-        onGripChange(desc);
+        onDescendantAdded(desc);
     end;
 end;
 local function oncharacter(char)
