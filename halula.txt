@@ -25,7 +25,7 @@ local equip_pause_ticks = 0;
 local function protect_equips(char)
     local function onDescendantAdded(desc)
         if desc:IsA("Weld") and desc.Name == "RightGrip" then
-            equip_pause_ticks = 3;
+            equip_pause_ticks = 30;
             if primarypart and clientcframe then
                 primarypart.CFrame = clientcframe;
             end;
@@ -33,7 +33,7 @@ local function protect_equips(char)
     end;
     local function onChildAdded(child)
         if child:IsA("Tool") then
-            equip_pause_ticks = 3;
+            equip_pause_ticks = 30;
             if primarypart and clientcframe then
                 primarypart.CFrame = clientcframe;
             end;
